@@ -1,6 +1,5 @@
 # Gate 0-2 dependencies only (no AI stack yet).
-# Lower bounds only for now. Exact versions get frozen right after Gate 0
-# is verified on a real machine (see README, "Freezing").
-numpy>=1.26
-opencv-python-headless>=4.10
-pytest>=7.4
+# FROZEN on 2026-09-22 from a verified Gate 0 run (Windows 11, Python 3.13.9, no NVIDIA GPU).
+numpy==2.5.3
+opencv-python-headless==5.0.0.93
+pytest==9.1.1

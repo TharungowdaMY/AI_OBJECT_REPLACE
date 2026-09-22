@@ -10,9 +10,44 @@ Development is a sequence of independently verified gates. A gate is FROZEN only
 
 ## 2. Current gate
 
-**Gate 0: Environment + project skeleton.** Status: awaiting results from your machine.
+**Gate 0: Environment + project skeleton — VERIFIED / FROZEN** (2026-09-22, Windows 11, Python 3.13.9, no NVIDIA GPU; see `pip freeze` output pinned in `requirements.txt`).
 
-Scope: a pinned-minimum Python environment, an environment report, and one smoke test. There is no AI code yet.
+**Gate 1: Video ingestion and preprocessing — VERIFIED / FROZEN** (2026-09-23, verified against `clip_a.mp4`: 2160x3840, 260 frames, 30fps, 8.667s, no rotation tag needed since pixels are stored portrait-native. Exact frame count match, timestamps monotonic, round-trip PSNR 51.4 dB against a 35 dB threshold, manual frame inspection confirmed correct at start/middle/end with no corruption).
+
+Known limitation, not yet exercised: rotation-tag handling (`side_data_list`/`tags.rotate`) is implemented but has never been tested against a clip that actually needs it (landscape-stored pixels with a rotate flag telling players to show it as portrait — common on some iPhones). If a future clip's frames come out sideways despite `rotation_deg: 0`, this is the first place to look.
+
+**Gate 2: Shot / scene detection** is next, not yet started.
+
+### Hardware note (carried forward from Gate 0)
+This machine has no NVIDIA GPU. Gates 0-2 run fine on CPU. Before Gate 3 (object detection) we need to decide how to run the GPU-heavy gates: rent a cloud GPU on demand, or develop against tiny inputs locally and validate on cloud periodically. Not decided yet, not urgent yet.
+
+### Running Gate 1
+
+```bash
+python scripts/ingest_video.py --input data/input/clip_a.mp4 --roundtrip
+```
+
+This writes to `runs/clip_a/`:
+- `frames/frame_000001.png`, `frame_000002.png`, ... — every decoded frame, lossless PNG
+- `roundtrip.mp4` — the re-encoded video, used only for the fidelity check
+- `meta.json` — everything below, in one file
+
+Expected terminal output: a probe summary line, an extraction count, a monotonic-timestamps check, a round-trip summary line, and a final `RESULT: PASS` with exit code 0. If anything mismatches, it prints `RESULT: FAIL` and exits 1.
+
+What `meta.json` contains:
+- `probe`: width, height, exact frame count, fps, duration, pixel format, rotation, audio presence
+- `frame_extraction`: how many PNGs were written and whether that matches ffprobe's count
+- `timestamps_monotonic`: whether decode timestamps strictly increase
+- `round_trip` (only with `--roundtrip`): frame count match, duration difference, PSNR average/min against a 35 dB threshold, and an overall pass/fail
+
+Acceptance thresholds (in `src/ingest.py`, `DURATION_TOLERANCE_S = 0.05` and `PSNR_MIN_DB = 35.0`) are starting points, not fixed. If your real clip fails PSNR by a small margin, that's a discussion, not an automatic reject — send me the numbers.
+
+### What to send back for Gate 1
+1. The full terminal output of the command above.
+2. The contents of `runs/clip_a/meta.json`.
+3. Whether `rotation_deg` in that file matches what the video actually looks like (does it play right-side up?).
+4. Open two or three PNGs from `runs/clip_a/frames/` and confirm they look correct (right orientation, no corruption).
+
 
 ## 3. Installation
 
@@ -75,7 +110,7 @@ Notes on how to read it:
 python -m pytest -v
 ```
 
-Expected: `1 passed`.
+Expected: `5 passed` (1 from Gate 0, 4 from Gate 1). The Gate 1 tests generate their own tiny synthetic clip with ffmpeg — they never touch `data/input/`, so they run the same on any machine regardless of what footage you have.
 
 ## 6. What to send back
 
