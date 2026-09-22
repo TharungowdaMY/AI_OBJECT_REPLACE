@@ -1,0 +1,32 @@
+# Python
+.venv/
+venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+*.egg-info/
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+
+# Secrets
+.env
+
+# Licensed footage and generated artifacts must NEVER be committed
+data/input/*
+data/output/*
+runs/*
+!data/input/.gitkeep
+!data/output/.gitkeep
+!runs/.gitkeep
+
+# Model weights (added in later gates)
+*.pt
+*.pth
+*.ckpt
+*.safetensors
+*.onnx
+checkpoints/

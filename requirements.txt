@@ -1,0 +1,6 @@
+# Gate 0-2 dependencies only (no AI stack yet).
+# Lower bounds only for now. Exact versions get frozen right after Gate 0
+# is verified on a real machine (see README, "Freezing").
+numpy>=1.26
+opencv-python-headless>=4.10
+pytest>=7.4
