@@ -1,5 +1,11 @@
-# Gate 0-2 dependencies only (no AI stack yet).
-# FROZEN on 2026-09-22 from a verified Gate 0 run (Windows 11, Python 3.13.9, no NVIDIA GPU).
+# Gate 0-2 dependencies.
+# numpy/opencv/pytest FROZEN on 2026-09-22 from a verified Gate 0 run
+# (Windows 11, Python 3.13.9, no NVIDIA GPU).
 numpy==2.5.3
 opencv-python-headless==5.0.0.93
 pytest==9.1.1
+
+# Gate 2 (shot detection). NOT YET VERIFIED - could not be installed or
+# tested in the dev sandbox (no network access there). Version range kept
+# loose on purpose until a real install confirms which version works.
+scenedetect>=0.6.2,<0.7

@@ -16,7 +16,31 @@ Development is a sequence of independently verified gates. A gate is FROZEN only
 
 Known limitation, not yet exercised: rotation-tag handling (`side_data_list`/`tags.rotate`) is implemented but has never been tested against a clip that actually needs it (landscape-stored pixels with a rotate flag telling players to show it as portrait — common on some iPhones). If a future clip's frames come out sideways despite `rotation_deg: 0`, this is the first place to look.
 
-**Gate 2: Shot / scene detection** is next, not yet started.
+**Gate 2: Shot / scene detection — awaiting your test results. Higher risk than previous gates, read this before running.**
+
+This gate adds PySceneDetect, the first real pip dependency beyond numpy/opencv/pytest. **I could not install or run PySceneDetect in my dev sandbox at all** (no network access there — confirmed by trying). Every other file in this project was executed and observed by me before you got it; `src/shots.py` and `scripts/detect_shots.py` were not. They're written against PySceneDetect's documented stable API, but your run is the first real test. Expect a real chance of a first-try error, the way `-vsync` broke on ffmpeg 9 in Gate 1 — if something breaks, paste the exact error and we'll fix that one thing.
+
+What it does: detects hard cuts (not fades/dissolves) using PySceneDetect's `ContentDetector`, writes `runs/<run_id>/shots.json` with each shot's frame range, and saves the frames on either side of each cut to `runs/<run_id>/boundaries/` so you can eyeball whether the cut looks right. It reuses Gate 1's frame extraction if it already ran for that clip.
+
+### Running Gate 2
+
+```bash
+pip install -r requirements.txt
+python scripts/detect_shots.py --input data/input/clip_a.mp4
+python scripts/detect_shots.py --input data/input/clip_b.mp4
+```
+
+`clip_a.mp4` has no cuts (locked-off, continuous), so expect exactly **1 shot** spanning all 260 frames. `clip_b.mp4` is the clip you made specifically to have a cut — I don't know how many cuts it has or expect it to have, so just report what got detected and whether it matches what you actually filmed.
+
+Expected terminal output: a probe line, a list of detected shots with frame ranges, a coverage check (shots should be contiguous with no gaps/overlaps), and `RESULT: PASS` if coverage is clean. A "PASS" here only means the frame accounting is internally consistent — it does **not** mean the cut was detected in the right place. That's what the boundary frames are for.
+
+### What to send back for Gate 2
+1. Output of `pip install -r requirements.txt` (the part relevant to `scenedetect`, in full if it errors).
+2. Full terminal output of both `detect_shots.py` commands.
+3. Contents of both `runs/clip_a/shots.json` and `runs/clip_b/shots.json`.
+4. For `clip_b`: open the images in `runs/clip_b/boundaries/` and confirm the `shotXX_end` and `shotXX_start` pairs actually straddle a real cut, not a random frame in the middle of continuous footage.
+5. How many real cuts you know `clip_b.mp4` has (so we can check the count matches).
+
 
 ### Hardware note (carried forward from Gate 0)
 This machine has no NVIDIA GPU. Gates 0-2 run fine on CPU. Before Gate 3 (object detection) we need to decide how to run the GPU-heavy gates: rent a cloud GPU on demand, or develop against tiny inputs locally and validate on cloud periodically. Not decided yet, not urgent yet.
@@ -110,7 +134,7 @@ Notes on how to read it:
 python -m pytest -v
 ```
 
-Expected: `5 passed` (1 from Gate 0, 4 from Gate 1). The Gate 1 tests generate their own tiny synthetic clip with ffmpeg — they never touch `data/input/`, so they run the same on any machine regardless of what footage you have.
+Expected: `8 passed` (1 Gate 0, 4 Gate 1, 3 Gate 2) — **but only after `pip install -r requirements.txt` succeeds**, since the Gate 2 tests import `scenedetect`. If that install fails, the Gate 2 tests will be reported as skipped, not failed (they're set up to skip cleanly rather than error if the dependency isn't there) — everything else still runs.
 
 ## 6. What to send back
 
